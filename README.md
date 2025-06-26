@@ -2,7 +2,7 @@
 
 This is a simple Rubik’s Cube visualizer and beginner-level solver (Step 1 - White Cross) made with **HTML, CSS, and JavaScript**.
 
-![Screenshot of Cube]([background.jpg](https://c0.wallpaperflare.com/preview/24/729/309/solved-3x3-rubik-s-cube.jpg))
+![Screenshot of Cube]](https://c0.wallpaperflare.com/preview/24/729/309/solved-3x3-rubik-s-cube.jpg)
 
 ---
 
