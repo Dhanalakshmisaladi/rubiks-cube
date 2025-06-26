@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rubik's Cube Visual Solver (2.5D)</title>
+  <style>
+    body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    position: relative;
+    color: white;
+    overflow: hidden;
+    }
+
+
+    body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('IMAGE 6.jpg') no-repeat center center;
+    background-size: cover;
+    filter: blur(8px); /* 👈 Change blur amount here */
+    z-index: -2;
+    }
+
+
+    body::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+    z-index: -1;
+    }
+
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .cube {
+      display: grid;
+      grid-template-columns: 90px 90px 90px;
+      grid-template-rows: 90px 90px 90px;
+      grid-template-areas:
+        ". U ."
+        "L F R"
+        ". D .";
+      gap: 5px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    .face {
+      display: grid;
+      grid-template-columns: repeat(3, 30px);
+      grid-gap: 2px;
+      background: #111;
+      padding: 4px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .face[data-face="U"] { grid-area: U; }
+    .face[data-face="D"] { grid-area: D; }
+    .face[data-face="F"] { grid-area: F; }
+    .face[data-face="B"] { grid-area: B; }
+    .face[data-face="L"] { grid-area: L; }
+    .face[data-face="R"] { grid-area: R; }
+
+    .sticker {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #333;
+      box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
+    }
+
+    .w { background: white; }
+    .y { background: yellow; }
+    .r { background: red; }
+    .o { background: orange; }
+    .g { background: green; }
+    .b { background: blue; }
+  </style>
+</head>
+<body>
+
+  <h1>Rubik's Cube</h1>
+  <button onclick="cube.scrambleCube(); updateView();">🔀 Scramble Cube</button>
+  <button onclick="cube.solveWhiteCross(); updateView();">✅ Solve Step 1 (White Cross)</button>
+  <button onclick="cube.reset(); updateView();">🔁 Reset Cube</button>
+
+  <div class="cube" id="cube-view">
+    <div class="face" data-face="U"></div>
+    <div class="face" data-face="L"></div>
+    <div class="face" data-face="F"></div>
+    <div class="face" data-face="R"></div>
+    <div class="face" data-face="D"></div>
+  </div>
+
+  <script>
+    class Cube {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.faces = {
+          U: Array(9).fill('w'),
+          D: Array(9).fill('y'),
+          F: Array(9).fill('g'),
+          B: Array(9).fill('b'),
+          L: Array(9).fill('o'),
+          R: Array(9).fill('r'),
+        };
+      }
+
+      rotateFace(face) {
+        return [
+          face[6], face[3], face[0],
+          face[7], face[4], face[1],
+          face[8], face[5], face[2],
+        ];
+      }
+
+      rotateFaceCounter(face) {
+        return [
+          face[2], face[5], face[8],
+          face[1], face[4], face[7],
+          face[0], face[3], face[6],
+        ];
+      }
+
+      applyMove(move) {
+        switch (move) {
+          case 'F': this.rotateFront(); break;
+          case "F'": this.rotateFront(true); break;
+          case 'U': this.rotateUp(); break;
+          case "U'": this.rotateUp(true); break;
+          case 'R': this.rotateRight(); break;
+          case "R'": this.rotateRight(true); break;
+        }
+      }
+
+      rotateFront(ccw = false) {
+        this.faces.F = ccw ? this.rotateFaceCounter(this.faces.F) : this.rotateFace(this.faces.F);
+        let [U, R, D, L] = [this.faces.U, this.faces.R, this.faces.D, this.faces.L];
+        let temp = [U[6], U[7], U[8]];
+        if (!ccw) {
+          [U[6], U[7], U[8]] = [L[8], L[5], L[2]];
+          [L[2], L[5], L[8]] = [D[2], D[1], D[0]];
+          [D[0], D[1], D[2]] = [R[0], R[3], R[6]];
+          [R[0], R[3], R[6]] = temp;
+        } else {
+          [U[6], U[7], U[8]] = [R[0], R[3], R[6]];
+          [R[0], R[3], R[6]] = [D[0], D[1], D[2]];
+          [D[0], D[1], D[2]] = [L[2], L[5], L[8]];
+          [L[2], L[5], L[8]] = temp;
+        }
+      }
+
+      rotateUp(ccw = false) {
+        this.faces.U = ccw ? this.rotateFaceCounter(this.faces.U) : this.rotateFace(this.faces.U);
+        let [F, R, B, L] = [this.faces.F, this.faces.R, this.faces.B, this.faces.L];
+        let temp = F.slice(0, 3);
+        if (!ccw) {
+          [F[0], F[1], F[2]] = [R[0], R[1], R[2]];
+          [R[0], R[1], R[2]] = [B[0], B[1], B[2]];
+          [B[0], B[1], B[2]] = [L[0], L[1], L[2]];
+          [L[0], L[1], L[2]] = temp;
+        } else {
+          [F[0], F[1], F[2]] = [L[0], L[1], L[2]];
+          [L[0], L[1], L[2]] = [B[0], B[1], B[2]];
+          [B[0], B[1], B[2]] = [R[0], R[1], R[2]];
+          [R[0], R[1], R[2]] = temp;
+        }
+      }
+
+      rotateRight(ccw = false) {
+        this.faces.R = ccw ? this.rotateFaceCounter(this.faces.R) : this.rotateFace(this.faces.R);
+        let [U, F, D, B] = [this.faces.U, this.faces.F, this.faces.D, this.faces.B];
+        let temp = [U[2], U[5], U[8]];
+        if (!ccw) {
+          [U[2], U[5], U[8]] = [F[2], F[5], F[8]];
+          [F[2], F[5], F[8]] = [D[2], D[5], D[8]];
+          [D[2], D[5], D[8]] = [B[6], B[3], B[0]];
+          [B[0], B[3], B[6]] = temp.reverse();
+        } else {
+          [U[2], U[5], U[8]] = [B[0], B[3], B[6]];
+          [B[0], B[3], B[6]] = [D[8], D[5], D[2]];
+          [D[2], D[5], D[8]] = [F[2], F[5], F[8]];
+          [F[2], F[5], F[8]] = temp;
+        }
+      }
+
+      scrambleCube(times = 20) {
+        const moves = ['F', "F'", 'U', "U'", 'R', "R'"];
+        for (let i = 0; i < times; i++) {
+          this.applyMove(moves[Math.floor(Math.random() * moves.length)]);
+        }
+      }
+
+      solveWhiteCross() {
+        // Dummy basic reverse solve example
+        this.applyMove("R");
+        this.applyMove("U'");
+        this.applyMove("F");
+        this.applyMove("R'");
+      }
+
+      getCube() {
+        return this.faces;
+      }
+    }
+
+    const cube = new Cube();
+    updateView();
+
+    function updateView() {
+      const faces = cube.getCube();
+      const faceOrder = ['U', 'L', 'F', 'R', 'D'];
+      for (let faceName of faceOrder) {
+        const faceDiv = document.querySelector(`.face[data-face="${faceName}"]`);
+        faceDiv.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+          const sq = document.createElement('div');
+          sq.className = `sticker ${faces[faceName][i]}`;
+          faceDiv.appendChild(sq);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
